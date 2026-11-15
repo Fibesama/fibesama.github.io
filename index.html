@@ -1502,7 +1502,9 @@ const FIREBASE = {
     load(V + 'firebase-app-compat.js').then(() => Promise.all([load(V + 'firebase-auth-compat.js'), load(V + 'firebase-firestore-compat.js')])).then(() => {
       firebase.initializeApp(FIREBASE);
       fb = { auth: firebase.auth(), db: firebase.firestore() };
-      $('#gLogin').onclick = () => fb.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(() => acct.hidden = true).catch(er => $('#acctNote').textContent = er.message);
+      const ERR = { 'auth/invalid-credential': 'Diso ny mailaka na ny teny miafina.', 'auth/wrong-password': 'Diso ny mailaka na ny teny miafina.', 'auth/user-not-found': 'Tsy misy kaonty amin\u2019io mailaka io.', 'auth/email-already-in-use': 'Efa misy kaonty amin\u2019io mailaka io: midira fotsiny.', 'auth/weak-password': 'Fohy loatra ny teny miafina (6 litera farafahakeliny).', 'auth/invalid-email': 'Tsy marina ny mailaka.', 'auth/popup-blocked': 'Nosakanan\u2019ny navigateur ny varavarankely: avelao ny pop-up ary andramo indray.', 'auth/popup-closed-by-user': 'Nakatona ny varavarankely fidirana.', 'auth/unauthorized-domain': 'Tsy mbola nekena ao amin\u2019ny Firebase ity site ity.', 'auth/operation-not-allowed': 'Tsy mbola nalefa ao amin\u2019ny Firebase io fomba fidirana io.', 'auth/network-request-failed': 'Tsy misy connexion.' };
+      const errMsg = er => ERR[er.code] || er.message;
+      $('#gLogin').onclick = () => fb.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).then(() => acct.hidden = true).catch(er => $('#acctNote').textContent = errMsg(er));
       $('#emailForm').addEventListener('submit', async e => {
         e.preventDefault(); const mode = e.submitter?.dataset.mode || 'in';
         const m = $('#aMail').value.trim(), pw = $('#aPass').value, nm = $('#aName').value.trim();
@@ -1510,7 +1512,7 @@ const FIREBASE = {
           if (mode === 'up') { const r = await fb.auth.createUserWithEmailAndPassword(m, pw); if (nm) await r.user.updateProfile({ displayName: nm }); }
           else await fb.auth.signInWithEmailAndPassword(m, pw);
           acct.hidden = true;
-        } catch (er) { $('#acctNote').textContent = er.code === 'auth/invalid-credential' ? 'Diso ny mailaka na ny teny miafina.' : er.message; }
+        } catch (er) { $('#acctNote').textContent = errMsg(er); }
       });
       $('#logout').onclick = () => fb.auth.signOut().then(() => acct.hidden = true);
       fb.auth.onAuthStateChanged(async u => {
