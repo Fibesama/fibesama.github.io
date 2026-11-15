@@ -3,4 +3,4 @@ Ny “FIBESAMA”na filongoaBen’ny Sakalava eto Madagasikara dia fikambanana a
 
 
 ## Tranonkala
-https://sambatratiphanie-lab.github.io/FIBESAMA-FilongoaBen-ny-Sakalava-/
+https://fibesama.github.io/
