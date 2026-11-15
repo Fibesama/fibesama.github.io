@@ -1,0 +1,62 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isMe(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Hevitra: hitan'ny rehetra; ny olona niditra ihany no manoratra, ary ny tompony ihany no mamafa
+    match /comments/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['post', 'uid', 'name', 'text', 'ts'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() > 0
+        && request.resource.data.text.size() <= 1000
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 80
+        && request.resource.data.post is string
+        && request.resource.data.post.size() <= 100
+        && request.resource.data.ts == request.time;
+      allow update: if false;
+      allow delete: if isMe(resource.data.uid);
+    }
+
+    // Tiako: isa hitan'ny rehetra; iray isaky ny olona isaky ny lahatsoratra
+    match /likes/{id} {
+      allow read: if true;
+      allow create: if signedIn()
+        && id == request.resource.data.post + '_' + request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['post', 'uid', 'ts'])
+        && request.resource.data.ts == request.time;
+      allow update: if false;
+      allow delete: if isMe(resource.data.uid);
+    }
+
+    // Mpanaraka: ny tompony ihany no mahita sy manova (misy mailaka ao)
+    match /subscribers/{uid} {
+      allow read, delete: if isMe(uid);
+      allow create: if isMe(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'name', 'ts']);
+      allow update: if false;
+    }
+
+    // Hafatra ho an'ny birao: azo alefa fa tsy azo vakiana avy ao amin'ny site
+    match /messages/{id} {
+      allow create: if signedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'contact', 'text', 'ts'])
+        && request.resource.data.text is string
+        && request.resource.data.text.size() <= 3000;
+      allow read, update, delete: if false;
+    }
+
+    // Ny sisa rehetra: voarara
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

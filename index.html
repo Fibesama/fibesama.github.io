@@ -1324,7 +1324,14 @@ const VIDEO = [];
    avy amin'ny console.firebase.google.com. Raha null dia tsy mandeha
    ny fidirana, ny "tiako" ary ny hevitra (fa mandeha ny fizarana).
    ===================================================================== */
-const FIREBASE = null;
+const FIREBASE = {
+  apiKey: "AIzaSyB_FNL4b4EJLJ4ubFMJDCQMVbT4VSadS1o",
+  authDomain: "fibesama-12.firebaseapp.com",
+  projectId: "fibesama-12",
+  storageBucket: "fibesama-12.firebasestorage.app",
+  messagingSenderId: "668739663227",
+  appId: "1:668739663227:web:3accdcc3ef3e490ab5f9de"
+};
 
 (() => {
   const $ = q => document.querySelector(q), $$ = q => [...document.querySelectorAll(q)];
@@ -1458,15 +1465,16 @@ const FIREBASE = null;
     c.querySelector('form').addEventListener('submit', async ev => {
       ev.preventDefault(); if (!fb) return openAcct(); if (needLogin('haneho hevitra')) return;
       const ta = ev.target.querySelector('textarea'), text = ta.value.trim(); if (!text) return;
-      await fb.db.collection('comments').add({ post: bar.dataset.post, uid: user.uid, name: user.displayName || user.email.split('@')[0], text, ts: firebase.firestore.FieldValue.serverTimestamp() });
+      await fb.db.collection('comments').add({ post: bar.dataset.post, uid: user.uid, name: (user.displayName || (user.email || '').split('@')[0] || 'Mpikambana').slice(0, 80), text, ts: firebase.firestore.FieldValue.serverTimestamp() });
       ta.value = ''; toast('Voaray ny hevitrao ✓'); loadComments(bar);
     });
     if (fb) loadComments(bar);
   };
   const loadComments = async bar => {
     const c = bar.nextElementSibling; if (!c || !c.classList.contains('cmts')) return;
-    const snap = await fb.db.collection('comments').where('post', '==', bar.dataset.post).orderBy('ts', 'desc').limit(50).get();
-    c.querySelector('.list').innerHTML = snap.empty ? '<p class="empty">Tsy mbola misy hevitra. Ianao no voalohany!</p>' : snap.docs.map(d => { const x = d.data(); return `<div class="c"><b>${esc(x.name)}</b><time>${x.ts ? x.ts.toDate().toLocaleString('fr-FR') : ''}</time><p>${esc(x.text)}</p></div>`; }).join('');
+    const snap = await fb.db.collection('comments').where('post', '==', bar.dataset.post).limit(200).get();
+    const docs = snap.docs.slice().sort((a, b) => ((b.data().ts?.toMillis?.() || 0) - (a.data().ts?.toMillis?.() || 0)));
+    c.querySelector('.list').innerHTML = snap.empty ? '<p class="empty">Tsy mbola misy hevitra. Ianao no voalohany!</p>' : docs.map(d => { const x = d.data(); return `<div class="c"><b>${esc(x.name)}</b><time>${x.ts ? x.ts.toDate().toLocaleString('fr-FR') : ''}</time><p>${esc(x.text)}</p></div>`; }).join('');
     bar.querySelector('[data-a=cmt] .n').textContent = snap.size || '';
   };
   const toggleLike = async (id, bar) => {
@@ -1479,14 +1487,14 @@ const FIREBASE = null;
     if (on) { await ref.delete(); toast('Tsy manaraka intsony ianao'); } else { await ref.set({ uid: user.uid, email: user.email || '', name: user.displayName || '', ts: firebase.firestore.FieldValue.serverTimestamp() }); toast('Hahazo ny vaovao ianao ✓'); }
     $$('[data-a=sub]').forEach(b => b.classList.toggle('on', !on));
   };
-  const refreshBar = async bar => {
+  const refreshBar = async bar => { try {
     const id = bar.dataset.post;
     const likes = await fb.db.collection('likes').where('post', '==', id).get();
     bar.querySelector('[data-a=like] .n').textContent = likes.size || '';
     bar.querySelector('[data-a=like]').classList.toggle('on', !!user && likes.docs.some(d => d.data().uid === user.uid));
     const cm = await fb.db.collection('comments').where('post', '==', id).get();
     bar.querySelector('[data-a=cmt] .n').textContent = cm.size || '';
-  };
+  } catch (er) { console.warn('fibesama', er.code || er); } };
 
   if (FIREBASE) {
     const load = src => new Promise((ok, ko) => { const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = ko; document.head.appendChild(s); });
